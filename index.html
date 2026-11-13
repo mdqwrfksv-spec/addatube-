@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AddaTube</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#0f0f0f;color:#fff}
+header{position:sticky;top:0;background:#0f0f0f;display:flex;gap:10px;padding:10px 12px;align-items:center;z-index:10}
+.logo{color:red;font-weight:900;font-size:22px;cursor:pointer;user-select:none}.logo span{color:#fff}
+#search{flex:1;background:#121212;border:1px solid #333;color:#fff;padding:9px 12px;border-radius:20px;outline:none}
+.btn{background:red;color:#fff;border:none;padding:9px 14px;border-radius:20px;font-weight:700}
+.btn2{background:#272727;color:#fff;border:none;padding:8px 12px;border-radius:20px}
+.btnG{background:#fff;color:#000;border:none;padding:10px;border-radius:10px;width:100%;font-weight:700;font-size:15px}
+.top{display:flex;gap:8px;padding:0 12px 10px;overflow:auto}
+.top button{background:#272727;color:#fff;border:none;padding:7px 14px;border-radius:18px;white-space:nowrap}
+.top button.active{background:#fff;color:#000}
+.card{background:#1a1a1a;margin:0 12px 14px;border-radius:12px;overflow:hidden}
+.card video{width:100%;max-height:240px;background:#000}
+.pad{padding:10px}.row{display:flex;gap:10px;align-items:center}
+.ava{width:38px;height:38px;border-radius:50%;background:red;display:flex;align-items:center;justify-content:center;font-weight:900}
+.small{font-size:12px;color:#aaa}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.actions button{background:#272727;color:#fff;border:none;padding:7px 10px;border-radius:18px;font-size:13px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;z-index:99}
+.modal.open{display:flex}
+.box{background:#1e1e1e;width:100%;max-width:430px;padding:16px;border-radius:14px;max-height:90vh;overflow:auto}
+.box input,.box textarea,.box select{width:100%;background:#111;border:1px solid #333;color:#fff;padding:10px;border-radius:10px;margin:8px 0}
+.fab{position:fixed;right:16px;bottom:16px;background:red;width:56px;height:56px;border-radius:50%;font-size:28px;border:none;color:#fff;z-index:20}
+.empty{text-align:center;color:#aaa;padding:30px}
+.cmt{background:#111;padding:8px;border-radius:8px;margin-top:6px;font-size:13px}
+.cmt b{color:#4dff88}
+</style>
+</head>
+<body>
+<header><div class="logo" onclick="logoTap()">▶️ Adda<span>Tube</span></div><input id="search" placeholder="Search..." oninput="render()"><button class="btn" id="loginBtn" onclick="openAuth()">Login</button></header>
+<div class="top" id="catBar"><button class="active" onclick="setCat('All',this)">All</button></div>
+<div id="myChannel" style="padding:0 12px 12px"></div>
+<div id="feed"></div>
+<div id="empty" class="empty">এখনো কোনো ভিডিও নাই।<br><br>Login with Google করে + দিয়ে ভিডিও দাও!</div>
+<button class="fab" onclick="tryUpload()">+</button>
+
+<div class="modal" id="authModal"><div class="box">
+<h2>Login করো</h2>
+<p class="small">দেখতে Login লাগবে না। আপলোড / কমেন্ট করতে Login লাগবে।<br>Password তুমি Google এর পেজে দিবা, আমরা দেখবো না।</p>
+<button class="btnG" onclick="loginWithGoogle()">G Login with Google</button>
+<div id="channelSetup" style="display:none;margin-top:12px">
+<h3>Channel খুলো</h3>
+<input id="chName" placeholder="Channel Name">
+<input id="chHandle" placeholder="@handle">
+<input id="chBio" placeholder="Bio">
+<button class="btn" style="width:100%" onclick="createChannel()">Channel Create ✅</button>
+</div>
+<button class="btn2" style="width:100%;margin-top:8px" onclick="closeModal('authModal')">Close</button>
+</div></div>
+
+<div class="modal" id="uploadModal"><div class="box"><h2>ভিডিও আপলোড</h2>
+<input id="vTitle" placeholder="Video Title">
+<select id="vCat"></select>
+<textarea id="vDesc" placeholder="Description..."></textarea>
+<input type="file" id="vThumb" accept="image/*">
+<p class="small">থাম্বনেইল ছবি দাও (না দিলেও চলবে)</p>
+<select id="upType" onchange="toggleUpType()"><option value="telegram">Telegram দিয়ে (ছোট ভিডিও)</option><option value="drive">Google Drive লিংক দিয়ে (বড় ভিডিও)</option></select>
+<div id="teleDiv"><input type="file" id="vFile" accept="video/*"></div>
+<div id="driveDiv" style="display:none"><input id="driveLink" placeholder="Drive লিংক পেস্ট করো..."><p class="small">Drive -> Share -> Anyone with link -> Copy link</p></div>
+<button class="btn" style="width:100%" onclick="uploadVideo()">Upload 🚀</button><button class="btn2" style="width:100%;margin-top:8px" onclick="closeModal('uploadModal')">Close</button><p id="upMsg" style="color:#0f0;font-size:13px"></p></div></div>
+
+<script>
+const ADMIN_EMAIL = "ADMIN_EMAIL_HERE";
+const TELEGRAM_CHAT_ID = "5291459119";
+const TELEGRAM_TOKEN = "9105253599:AAH1CiJoZLlVtsksCt-voe0nZCT5uuUE2IA";
+const SECRET_ADMIN_PASS = "adda321";
+const firebaseConfig = {
+  apiKey: "AIzaSyBaCkO1aOC_W7cXrW6rpFyw-tFyqfgpks8",
+  authDomain: "addatube-d44ef.firebaseapp.com",
+  databaseURL: "https://addatube-d44ef-default-rtdb.firebaseio.com",
+  projectId: "addatube-d44ef",
+  storageBucket: "addatube-d44ef.firebasestorage.app",
+  messagingSenderId: "111475512438",
+  appId: "1:111475512438:web:fb46820ef2f688a1843b57"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const DB_BASE = "https://addatube-d44ef-default-rtdb.firebaseio.com";
+const DB_URL = DB_BASE + "/videos.json";
+
+let currentUser = null;
+let myChannel = JSON.parse(localStorage.getItem('addatube_my')||'null');
+let videos = [];
+let cat = 'All';
+let categories = ["Funny","Vlog","Gaming","Music"];
+let logoClicks = 0;
+let logoTimer = null;
+let secretAdmin = sessionStorage.getItem('secret_admin')==='1';
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openAuth(){ if(currentUser){ alert('তুমি Login আছো: '+currentUser.email); return; } openModal('authModal'); }
+
+// ===== SECRET ADMIN - লোগোতে ৫ বার চাপ =====
+function logoTap(){
+  logoClicks++;
+  clearTimeout(logoTimer);
+  logoTimer = setTimeout(()=>{ logoClicks=0; }, 2000);
+  if(logoClicks>=5){
+    logoClicks=0;
+    if(secretAdmin){
+      if(confirm('Admin মোড বন্ধ করবা?')){ secretAdmin=false; sessionStorage.removeItem('secret_admin'); render(); }
+      return;
+    }
+    let p = prompt('Admin Password দাও:');
+    if(p===SECRET_ADMIN_PASS){
+      secretAdmin=true; sessionStorage.setItem('secret_admin','1');
+      alert('Admin মোড চালু! এখন তুমি যেকোনো ভিডিও ডিলিট করতে পারবা।');
+      render();
+    } else if(p!==null){
+      alert('Password ভুল!');
+    }
+  }
+}
+function isAdmin(){ return secretAdmin || (currentUser && currentUser.email===ADMIN_EMAIL); }
+function canSeeDelete(){ return secretAdmin; }
+
+async function loginWithGoogle(){
+  try{
+    let provider = new firebase.auth.GoogleAuthProvider();
+    let result = await auth.signInWithPopup(provider);
+    currentUser = result.user;
+    document.getElementById('loginBtn').innerText = currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Login ✅';
+    if(!myChannel || myChannel.email !== currentUser.email){
+      document.getElementById('channelSetup').style.display='block';
+      document.getElementById('chName').value = currentUser.displayName || '';
+    } else { closeModal('authModal'); render(); }
+    render();
+  }catch(e){ alert('Google Login Error: '+e.message); }
+}
+function createChannel(){
+  if(!currentUser) return alert('আগে Google Login করো!');
+  let n=document.getElementById('chName').value.trim();
+  if(!n) return alert('Channel নাম দাও!');
+  let h=document.getElementById('chHandle').value.trim() || '@'+n.toLowerCase().replace(/\s/g,'');
+  myChannel={name:n,handle:h,bio:document.getElementById('chBio').value,email:currentUser.email,photo:currentUser.photoURL||''};
+  localStorage.setItem('addatube_my',JSON.stringify(myChannel));
+  closeModal('authModal'); render(); alert('চ্যানেল হয়ে গেছে!');
+}
+function doLogout(){ auth.signOut(); currentUser=null; document.getElementById('loginBtn').innerText='Login'; render(); }
+function setCat(c,el){ cat=c; document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+function toggleUpType(){ let t=document.getElementById('upType').value; document.getElementById('teleDiv').style.display = t==='telegram'?'block':'none'; document.getElementById('driveDiv').style.display = t==='drive'?'block':'none'; }
+async function loadSettings(){
+  try{ let r=await fetch('settings.json'); let j=await r.json(); if(j.categories) categories=j.categories; }catch(e){}
+  document.getElementById('catBar').innerHTML = `<button class="active" onclick="setCat('All',this)">All</button>` + categories.map(c=>`<button onclick="setCat('${c}',this)">${c}</button>`).join('');
+  document.getElementById('vCat').innerHTML = categories.map(c=>`<option>${c}</option>`).join('');
+}
+function tryUpload(){
+  if(!currentUser){ alert('আপলোড করতে Login with Google লাগবে!'); openAuth(); return; }
+  if(!myChannel || myChannel.email !== currentUser.email){ alert('আগে Channel খুলো!'); openAuth(); return; }
+  openModal('uploadModal');
+}
+async function loadVideos(){
+  try{ let r=await fetch(DB_URL); let data=await r.json(); if(data){ videos=Object.entries(data).map(([key,v])=>({...v,key})).reverse(); } }catch(e){}
+  render();
+}
+function driveToDirect(link){
+  let m=link.match(/\/d\/([^\/]+)/) || link.match(/id=([^&]+)/);
+  if(!m) return link;
+  return "https://drive.google.com/uc?export=download&id="+m[1];
+}
+async function uploadVideo(){
+  let t=document.getElementById('vTitle').value.trim();
+  let type=document.getElementById('upType').value;
+  if(!t) return alert('Title দাও!');
+  let videoUrl=""; let thumbUrl="";
+  let tf=document.getElementById('vThumb').files[0];
+  if(tf){ thumbUrl=URL.createObjectURL(tf); }
+  if(type==='telegram'){
+    let f=document.getElementById('vFile').files[0];
+    if(!f) return alert('Video ফাইল দাও!');
+    document.getElementById('upMsg').innerText='Telegram এ আপলোড হচ্ছে...';
+    let fd=new FormData(); fd.append('chat_id',TELEGRAM_CHAT_ID); fd.append('video',f); fd.append('caption',t+' | '+myChannel.name);
+    let res=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendVideo',{method:'POST',body:fd});
+    let j=await res.json(); if(!j.ok) return alert('Telegram Error: '+j.description);
+    let fileId=j.result.video.file_id;
+    let gj=await (await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/getFile?file_id='+fileId)).json();
+    videoUrl='https://api.telegram.org/file/bot'+TELEGRAM_TOKEN+'/'+gj.result.file_path;
+  } else {
+    let link=document.getElementById('driveLink').value.trim();
+    if(!link) return alert('Drive লিংক দাও!');
+    videoUrl=driveToDirect(link);
+  }
+  let newVideo={title:t,cat:document.getElementById('vCat').value,desc:document.getElementById('vDesc').value,channel:myChannel.name,handle:myChannel.handle,ownerEmail:currentUser.email,src:videoUrl,thumb:thumbUrl,views:0,likes:0,time:Date.now()};
+  await fetch(DB_URL,{method:'POST',body:JSON.stringify(newVideo)});
+  closeModal('uploadModal'); document.getElementById('vTitle').value=''; document.getElementById('vFile').value=''; document.getElementById('vThumb').value=''; document.getElementById('driveLink').value=''; document.getElementById('upMsg').innerText='';
+  await loadVideos(); alert('হয়ে গেছে! 🔥');
+}
+async function deleteVideo(key){
+  if(!isAdmin()) return alert('তুমি ডিলিট করতে পারবা না!');
+  if(!confirm('এই ভিডিও ডিলিট করবা?')) return;
+  await fetch(DB_BASE+"/videos/"+key+".json",{method:'DELETE'});
+  await loadVideos();
+}
+async function toggleLike(key){
+  let v=videos.find(x=>x.key===key);
+  let liked=localStorage.getItem('liked_'+key)==='1';
+  let newLikes=liked?Math.max(0,(v.likes||0)-1):(v.likes||0)+1;
+  localStorage.setItem('liked_'+key,liked?'0':'1');
+  await fetch(DB_BASE+"/videos/"+key+"/likes.json",{method:'PUT',body:JSON.stringify(newLikes)});
+  loadVideos();
+}
+async function shareVideo(title){
+  let text=title+" - AddaTube এ দেখো: "+location.href;
+  if(navigator.share){ try{ await navigator.share({title:title,text:text,url:location.href}); }catch(e){} }
+  else{ await navigator.clipboard.writeText(text); alert('লিংক কপি হয়ে গেছে!'); }
+}
+async function addComment(key, idx){
+  if(!currentUser) return alert('কমেন্ট করতে Login with Google লাগবে!');
+  let inp=document.getElementById('cmtIn_'+idx);
+  let txt=inp.value.trim(); if(!txt) return;
+  await fetch(DB_BASE+"/comments/"+key+".json",{method:'POST',body:JSON.stringify({name:myChannel?myChannel.name:currentUser.displayName, text:txt, time:Date.now()})});
+  inp.value=''; loadVideos();
+}
+async function getComments(key){
+  try{ let r=await fetch(DB_BASE+"/comments/"+key+".json"); let d=await r.json(); return d?Object.values(d):[]; }catch(e){ return []; }
+}
+async function render(){
+  let q=document.getElementById('search').value.toLowerCase();
+  let list=videos.filter(v=>(cat==='All'||v.cat===cat)&&(v.title.toLowerCase().includes(q)||v.channel.toLowerCase().includes(q)));
+  if(currentUser){
+    document.getElementById('myChannel').innerHTML=`<div style="background:#1a1a1a;padding:12px;border-radius:12px"><b>👤 ${myChannel?myChannel.name:currentUser.displayName}</b> <span class="small">${currentUser.email}</span> <button class="btn2" onclick="doLogout()" style="float:right">Logout</button></div>`;
+  } else {
+    document.getElementById('myChannel').innerHTML=`<div style="background:#1a2a1a;padding:12px;border-radius:12px">👀 দেখতে Login লাগবে না। <b onclick="openAuth()" style="color:#4dff88">আপলোড করতে Login with Google করো</b></div>`;
+  }
+  document.getElementById('empty').style.display=list.length?'none':'block';
+  let html="";
+  for(let i=0;i<list.length;i++){
+    let v=list[i];
+    let cmts=await getComments(v.key);
+    let cmtHtml=cmts.map(c=>`<div class="cmt"><b>${c.name}:</b> ${c.text}</div>`).join('');
+    let showDel = canSeeDelete() || (currentUser && v.ownerEmail===currentUser.email);
+    html+=`<div class="card"><video controls src="${v.src}" poster="${v.thumb||''}"></video><div class="pad"><div class="row"><div class="ava">${v.channel[0]}</div><div style="flex:1"><b>${v.title}</b><br><span class="small">${v.channel} ${v.handle} • ${v.views||0} views • ${v.cat}</span></div>${showDel?`<button class="btn2" onclick="deleteVideo('${v.key}')">🗑️ Delete</button>`:''}</div><p class="small" style="margin-top:6px">${v.desc||''}</p><div class="actions"><button onclick="toggleLike('${v.key}')">❤️ লাইক ${v.likes||0}</button><button onclick="shareVideo('${v.title.replace(/'/g,"")}')">🔗 শেয়ার</button></div><div style="margin-top:10px"><b>💬 কমেন্ট (${cmts.length})</b>${cmtHtml}<div style="display:flex;gap:6px;margin-top:6px"><input id="cmtIn_${i}" placeholder="কমেন্ট লিখো... (Login লাগবে)" style="flex:1;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:10px"><button class="btn2" onclick="addComment('${v.key}',${i})">পাঠাও</button></div></div></div></div>`;
+  }
+  document.getElementById('feed').innerHTML=html;
+}
+auth.onAuthStateChanged(u=>{ currentUser=u; if(u) document.getElementById('loginBtn').innerText='Login ✅'; render(); });
+loadSettings(); loadVideos(); setInterval(loadVideos,15000);
+</script>
+</body>
+</html>
