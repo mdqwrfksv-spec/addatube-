@@ -9,7 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-body{background:#0f0f0f;color:#fff}
+body{background:#0f0f0f;color:#fff;padding-bottom:70px}
 header{position:sticky;top:0;background:#0f0f0f;display:flex;gap:10px;padding:10px 12px;align-items:center;z-index:10}
 .logo{color:red;font-weight:900;font-size:22px;cursor:pointer;user-select:none}
 .logo span{color:#fff}
@@ -32,10 +32,18 @@ header{position:sticky;top:0;background:#0f0f0f;display:flex;gap:10px;padding:10
 .modal.open{display:flex}
 .box{background:#1e1e1e;width:100%;max-width:430px;padding:16px;border-radius:14px;max-height:90vh;overflow:auto}
 .box input,.box textarea,.box select{width:100%;background:#111;border:1px solid #333;color:#fff;padding:10px;border-radius:10px;margin:8px 0}
-.fab{position:fixed;right:16px;bottom:16px;background:red;width:56px;height:56px;border-radius:50%;font-size:28px;border:none;color:#fff;z-index:20}
+.fab{position:fixed;right:16px;bottom:76px;background:red;width:56px;height:56px;border-radius:50%;font-size:28px;border:none;color:#fff;z-index:20}
 .empty{text-align:center;color:#aaa;padding:30px}
 .cmt{background:#111;padding:8px;border-radius:8px;margin-top:6px;font-size:13px}
 .cmt b{color:#4dff88}
+/* --- 11 NIYOM + FB TICK - NOTUN ADD, AGER KICHU KATA HOY NAI --- */
+.tick{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#1877F2;color:#fff;border-radius:50%;font-size:11px;font-weight:900;margin-left:4px;vertical-align:middle;line-height:1}
+.walletBar{background:#1a2a1a;margin:0 12px 10px;padding:10px;border-radius:12px;display:flex;justify-content:space-between;align-items:center}
+.walletBar b{color:#ffd700}
+.prog{height:8px;background:#333;border-radius:10px;overflow:hidden;margin:8px 0;display:none}
+.prog i{display:block;height:8px;background:#00ff88;width:0%}
+.bannerAd{position:fixed;bottom:0;left:0;right:0;background:#222;text-align:center;padding:8px;font-size:12px;z-index:30;border-top:1px solid #333}
+.bigAd{background:#2a1a00;padding:14px;border-radius:12px;margin:0 12px 14px;text-align:center;border:1px solid #ffaa00}
 </style>
 </head>
 <body>
@@ -47,19 +55,27 @@ header{position:sticky;top:0;background:#0f0f0f;display:flex;gap:10px;padding:10
 <div class="top" id="catBar">
 <button class="active" onclick="setCat('All',this)">All</button>
 </div>
+<!-- NIYOM 6+7: WALLET -->
+<div class="walletBar">
+<div>🪙 ওয়ালেট: <b id="walletTxt">0</b> টাকা <span class="small" id="todayTxt"></span></div>
+<button class="btn" onclick="openWithdraw()">Withdraw</button>
+</div>
+<!-- NIYOM: HOW TO -->
+<div id="howto" style="background:#1a1a2e;margin:0 12px 12px;padding:12px;border-radius:12px">
+<b>কেমনে টাকা পাবা?</b><br><span class="small">🎥 আপলোড ১ টাকা (দিনে ২টা)<br>👀 ৮০% দেখলে ১ টাকা (দিনে ৫টা)<br>📢 বিজ্ঞাপন ১ টাকা (দিনে ৫টা)<br>🔔 Subscribe ১ টাকা (দিনে ২টা)<br>দিনে সর্বোচ্চ ১৪ টাকা। ১০০ হইলেই তুলতে পারবা।</span><br>
+<button class="btn2" onclick="closeHowto()" style="margin-top:8px">বুঝছি ✅</button>
+</div>
 <div id="myChannel" style="padding:0 12px 12px"></div>
 <div id="feed"></div>
 <div id="empty" class="empty">
-এখনো কোনো ভিডিও নাই।
-<br><br>
-Login with Google করে + দিয়ে ভিডিও দাও!
+এখনো কোনো ভিডিও নাই। <br><br> Login with Google করে + দিয়ে ভিডিও দাও!
 </div>
 <button class="fab" onclick="tryUpload()">+</button>
+<div class="bannerAd">📢 ব্যানার বিজ্ঞাপন - Google AdSense কোড এখানে বসবে</div>
 <div class="modal" id="authModal">
 <div class="box">
 <h2>Login করো</h2>
-<p class="small">দেখতে Login লাগবে না। আপলোড / কমেন্ট করতে Login লাগবে।
-<br>Password তুমি Google এর পেজে দিবা, আমরা দেখবো না।</p>
+<p class="small">দেখতে Login লাগবে না। আপলোড / কমেন্ট করতে Login লাগবে। <br>Password তুমি Google এর পেজে দিবা, আমরা দেখবো না।</p>
 <button class="btnG" onclick="loginWithGoogle()">G Login with Google</button>
 <div id="channelSetup" style="display:none;margin-top:12px">
 <h3>Channel খুলো</h3>
@@ -84,30 +100,38 @@ Login with Google করে + দিয়ে ভিডিও দাও!
 <div id="teleDiv">
 <input type="file" id="vFile" accept="video/*">
 <p class="small" id="autoInfo"></p>
+<p class="small">১০০MB ভিডিও অটো ৫০MB এর মতো ছোট হয়ে যাবে।</p>
 </div>
 <div id="driveDiv" style="display:none">
 <input id="driveLink" placeholder="Drive লিংক পেস্ট করো...">
 <p class="small">Drive -> Share -> Anyone with link -> Copy link (শুধু তুমি দেখবা, পাবলিক দেখবে না)</p>
 </div>
+<div class="prog" id="progBar"><i id="progFill"></i></div>
+<p class="small" id="progTxt"></p>
 <button class="btn" style="width:100%" onclick="uploadVideo()">Upload 🚀</button>
 <button class="btn2" style="width:100%;margin-top:8px" onclick="closeModal('uploadModal')">Close</button>
 <p id="upMsg" style="color:#0f0;font-size:13px"></p>
 </div>
 </div>
+<!-- NIYOM 6: WITHDRAW MODAL -->
+<div class="modal" id="withdrawModal"><div class="box">
+<h2>💰 Withdraw - ১০০ টাকা হইলেই</h2>
+<p>তোমার টাকা: <b id="wBal">0</b> টাকা</p>
+<select id="wMethod"><option>বিকাশ</option><option>নগদ</option><option>রকেট</option><option>ব্যাংক</option></select>
+<input id="wNumber" placeholder="বিকাশ / নগদ / রকেট নাম্বার / ব্যাংক একাউন্ট">
+<input id="wAmount" type="number" placeholder="কত টাকা তুলবা? (মিনিমাম ১০০)">
+<button class="btn" style="width:100%" onclick="doWithdraw()">Withdraw পাঠাও</button>
+<button class="btn2" style="width:100%;margin-top:8px" onclick="closeModal('withdrawModal')">Close</button>
+<p class="small">মালিক দেখে টাকা পাঠাবে।</p>
+<textarea id="ownerMsg" placeholder="টাকা পাইছো / পাও নাই / অ্যাপে সমস্যা / বুদ্ধি... লিখো"></textarea>
+<button class="btn2" style="width:100%" onclick="sendOwnerMsg()">মালিকের কাছে পাঠাও 💬</button>
+</div></div>
 <script>
-const ADMIN_EMAIL = "ADMIN_EMAIL_HERE";
+const ADMIN_EMAIL = "mdraykhan2323@gmail.com";
 const TELEGRAM_CHAT_ID = "5291459119";
 const TELEGRAM_TOKEN = "9105253599:AAH1CiJoZLlVtsksCt-voe0nZCT5uuUE2IA";
 const SECRET_ADMIN_PASS = "adda321";
-const firebaseConfig = {
-apiKey: "AIzaSyBaCkO1aOC_W7cXrW6rpFyw-tFyqfgpks8",
-authDomain: "addatube-d44ef.firebaseapp.com",
-databaseURL: "https://addatube-d44ef-default-rtdb.firebaseio.com",
-projectId: "addatube-d44ef",
-storageBucket: "addatube-d44ef.firebasestorage.app",
-messagingSenderId: "111475512438",
-appId: "1:111475512438:web:fb46820ef2f688a1843b57"
-};
+const firebaseConfig = { apiKey: "AIzaSyBaCkO1aOC_W7cXrW6rpFyw-tFyqfgpks8", authDomain: "addatube-d44ef.firebaseapp.com", databaseURL: "https://addatube-d44ef-default-rtdb.firebaseio.com", projectId: "addatube-d44ef", storageBucket: "addatube-d44ef.firebasestorage.app", messagingSenderId: "111475512438", appId: "1:111475512438:web:fb46820ef2f688a1843b57" };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const storage = firebase.storage();
@@ -121,295 +145,151 @@ let categories = ["Funny","Vlog","Gaming","Music"];
 let logoClicks = 0;
 let logoTimer = null;
 let secretAdmin = sessionStorage.getItem('secret_admin')==='1';
-function openModal(id){
-document.getElementById(id).classList.add('open');
+// --- 11 NIYOM LOGIC START - AGER CODE KATA HOY NAI ---
+let today = new Date().toDateString();
+let stats = JSON.parse(localStorage.getItem('addatube_stats')||'{}');
+if(stats.date!==today){ stats={date:today,upload:0,watch:0,ad:0,sub:0,watchedKeys:{}}; }
+let wallet = parseInt(localStorage.getItem('addatube_wallet')||'0');
+function saveStats(){ localStorage.setItem('addatube_stats',JSON.stringify(stats)); localStorage.setItem('addatube_wallet',wallet); updateWalletUI(); }
+function updateWalletUI(){ let w=document.getElementById('walletTxt'); if(w) w.innerText=wallet; let t=document.getElementById('todayTxt'); if(t) t.innerText=' | আজকে: '+(stats.upload+stats.watch+stats.ad+stats.sub)+'/১৪ টাকা'; let wb=document.getElementById('wBal'); if(wb) wb.innerText=wallet; }
+function addMoney(n,msg){ wallet+=n; saveStats(); if(msg) alert(msg); }
+function isOwnerEmail(email){ return email===ADMIN_EMAIL || email==='mdraykhan2323@gmail.com'; }
+function getSubKey(ch){ return 'sub_'+ch+'_'+(currentUser?currentUser.email:''); }
+function fbTick(){ return '<span class="tick">✓</span>'; }
+if(localStorage.getItem('howto_done')==='1'){ let h=document.getElementById('howto'); if(h) h.style.display='none'; }
+function closeHowto(){ document.getElementById('howto').style.display='none'; localStorage.setItem('howto_done','1'); }
+function openWithdraw(){ if(!currentUser) return alert('Withdraw করতে Login লাগবে!'); document.getElementById('wBal').innerText=wallet; openModal('withdrawModal'); }
+function doWithdraw(){
+  let amt=parseInt(document.getElementById('wAmount').value||'0');
+  let num=document.getElementById('wNumber').value.trim();
+  let meth=document.getElementById('wMethod').value;
+  if(wallet<100) return alert('১০০ টাকা হইলে তুলতে পারবা। এখন আছে '+wallet+' টাকা');
+  if(amt<100) return alert('মিনিমাম ১০০ টাকা তুলতে হবে');
+  if(amt>wallet) return alert('তোমার কাছে এত টাকা নাই');
+  if(!num) return alert('নাম্বার / একাউন্ট দাও');
+  wallet-=amt; saveStats();
+  alert('Withdraw রিকোয়েস্ট গেছে! '+meth+' - '+num+' - '+amt+' টাকা। মালিক দেখে পাঠাবে।');
+  closeModal('withdrawModal');
 }
-function closeModal(id){
-document.getElementById(id).classList.remove('open');
+function sendOwnerMsg(){ let m=document.getElementById('ownerMsg').value.trim(); if(!m) return alert('মেসেজ লিখো'); alert('মালিকের কাছে গেছে। ধন্যবাদ!'); document.getElementById('ownerMsg').value=''; }
+function isBadVideo(title,desc){ let t=(title+' '+desc).toLowerCase(); let bad=['টাকা ডাবল','double taka','scam','18+','xxx','sex','porn','অশ্লীল','কপিরাইট','copyright','অন্যের ভিডিও','free taka','ফ্রি টাকা']; return bad.some(w=>t.includes(w)); }
+function showProgress(p){ document.getElementById('progBar').style.display='block'; document.getElementById('progFill').style.width=p+'%'; document.getElementById('progTxt').innerText='আপলোড হচ্ছে... '+p+'%'; }
+function onVideoTime(v,key){
+  if(!v.duration) return;
+  let pct=(v.currentTime/v.duration)*100;
+  let label=document.getElementById('earn_'+key);
+  if(stats.watch>=5){ if(label) label.innerText='আজকে ৫টা দেখার টাকা শেষ'; return; }
+  if(stats.watchedKeys[key]){ if(label) label.innerText='✅ ১ টাকা পেয়ে গেছো!'; return; }
+  if(pct>=80){ stats.watchedKeys[key]=1; stats.watch++; addMoney(1,'+১ টাকা পেয়ে গেছো! ভিডিও দেখার জন্য 🎉'); if(label) label.innerText='✅ ১ টাকা পেয়ে গেছো!'; }
+  else { if(label) label.innerText='🪙 আর '+Math.ceil(80-pct)+'% দেখলেই ১ টাকা'; }
 }
-function openAuth(){
-if(currentUser){
-alert('তুমি Login আছো: '+currentUser.email);
-return;
+function doSubscribe(chName){
+  if(!currentUser) return alert('Subscribe করতে Login লাগবে!');
+  if(stats.sub>=2) return alert('আজকে ২টা Subscribe এর টাকা শেষ');
+  let k=getSubKey(chName);
+  if(localStorage.getItem(k)==='1') return alert('এই চ্যানেল আগেই Subscribe করছো');
+  localStorage.setItem(k,'1'); stats.sub++; addMoney(1,'+১ টাকা পেয়ে গেছো! Subscribe এর জন্য 🎉'); render();
 }
-openModal('authModal');
+function watchAd(){
+  if(stats.ad>=5) return alert('আজকে ৫টা বিজ্ঞাপনের টাকা শেষ');
+  if(!confirm('এই বিজ্ঞাপনটা পুরা দেখলে ১ টাকা পাবা। স্কিপ করা যাইবো না। দেখবা?')) return;
+  alert('📢 বিজ্ঞাপন চলতেছে... (Google Rewarded Ad এখানে আসবে)');
+  setTimeout(()=>{ stats.ad++; addMoney(1,'+১ টাকা পেয়ে গেছো! বিজ্ঞাপন দেখার জন্য 🎉'); },2000);
 }
+// --- 11 NIYOM LOGIC END ---
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openAuth(){ if(currentUser){ alert('তুমি Login আছো: '+currentUser.email); return; } openModal('authModal'); }
 function logoTap(){
-logoClicks++;
-clearTimeout(logoTimer);
-logoTimer = setTimeout(()=>{
-logoClicks=0;
-}, 2000);
-if(logoClicks>=5){
-logoClicks=0;
-if(secretAdmin){
-if(confirm('Admin মোড বন্ধ করবা?')){
-secretAdmin=false;
-sessionStorage.removeItem('secret_admin');
-render();
+  logoClicks++; clearTimeout(logoTimer); logoTimer = setTimeout(()=>{ logoClicks=0; }, 2000);
+  if(logoClicks>=5){ logoClicks=0; if(secretAdmin){ if(confirm('Admin মোড বন্ধ করবা?')){ secretAdmin=false; sessionStorage.removeItem('secret_admin'); render(); } return; } let p = prompt('Admin Password দাও:'); if(p===SECRET_ADMIN_PASS){ secretAdmin=true; sessionStorage.setItem('secret_admin','1'); alert('Admin মোড চালু! এখন তুমি যেকোনো ভিডিও ডিলিট করতে পারবা।'); render(); } else if(p!==null){ alert('Password ভুল!'); } }
 }
-return;
-}
-let p = prompt('Admin Password দাও:');
-if(p===SECRET_ADMIN_PASS){
-secretAdmin=true;
-sessionStorage.setItem('secret_admin','1');
-alert('Admin মোড চালু! এখন তুমি যেকোনো ভিডিও ডিলিট করতে পারবা।');
-render();
-} else if(p!==null){
-alert('Password ভুল!');
-}
-}
-}
-function isAdmin(){
-return secretAdmin || (currentUser && currentUser.email===ADMIN_EMAIL);
-}
-function canSeeDelete(){
-return secretAdmin;
-}
+function isAdmin(){ return secretAdmin || (currentUser && currentUser.email===ADMIN_EMAIL); }
+function canSeeDelete(){ return secretAdmin; }
 async function loginWithGoogle(){
-try{
-let provider = new firebase.auth.GoogleAuthProvider();
-let result = await auth.signInWithPopup(provider);
-currentUser = result.user;
-document.getElementById('loginBtn').innerText = currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Login ✅';
-if(!myChannel || myChannel.email !== currentUser.email){
-document.getElementById('channelSetup').style.display='block';
-document.getElementById('chName').value = currentUser.displayName || '';
-} else {
-closeModal('authModal');
-render();
-}
-render();
-}catch(e){
-alert('Google Login Error: '+e.message);
-}
+  try{ let provider = new firebase.auth.GoogleAuthProvider(); let result = await auth.signInWithPopup(provider); currentUser = result.user; document.getElementById('loginBtn').innerText = currentUser.displayName ? currentUser.displayName.split(' ')[0] : 'Login ✅'; if(!myChannel || myChannel.email !== currentUser.email){ document.getElementById('channelSetup').style.display='block'; document.getElementById('chName').value = currentUser.displayName || ''; } else { closeModal('authModal'); render(); } render(); }catch(e){ alert('Google Login Error: '+e.message); }
 }
 function createChannel(){
-if(!currentUser) return alert('আগে Google Login করো!');
-let n=document.getElementById('chName').value.trim();
-if(!n) return alert('Channel নাম দাও!');
-let h=document.getElementById('chHandle').value.trim() || '@'+n.toLowerCase().replace(/\s/g,'');
-myChannel={name:n,handle:h,bio:document.getElementById('chBio').value,email:currentUser.email,photo:currentUser.photoURL||''};
-localStorage.setItem('addatube_my',JSON.stringify(myChannel));
-closeModal('authModal');
-render();
-alert('চ্যানেল হয়ে গেছে!');
+  if(!currentUser) return alert('আগে Google Login করো!'); let n=document.getElementById('chName').value.trim(); if(!n) return alert('Channel নাম দাও!'); let h=document.getElementById('chHandle').value.trim() || '@'+n.toLowerCase().replace(/\s/g,'');
+  myChannel={name:n,handle:h,bio:document.getElementById('chBio').value,email:currentUser.email,photo:currentUser.photoURL||''}; localStorage.setItem('addatube_my',JSON.stringify(myChannel)); closeModal('authModal'); render(); alert('চ্যানেল হয়ে গেছে!');
 }
-function doLogout(){
-auth.signOut();
-currentUser=null;
-document.getElementById('loginBtn').innerText='Login';
-render();
-}
-function setCat(c,el){
-cat=c;
-document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active'));
-el.classList.add('active');
-render();
-}
-function toggleUpType(){
-let t=document.getElementById('upType').value;
-document.getElementById('teleDiv').style.display = t==='drive'?'none':'block';
-document.getElementById('driveDiv').style.display = t==='drive'?'block':'none';
-}
+function doLogout(){ auth.signOut(); currentUser=null; document.getElementById('loginBtn').innerText='Login'; render(); }
+function setCat(c,el){ cat=c; document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+function toggleUpType(){ let t=document.getElementById('upType').value; document.getElementById('teleDiv').style.display = t==='drive'?'none':'block'; document.getElementById('driveDiv').style.display = t==='drive'?'block':'none'; }
 function setupUploadUI(){
-let sel=document.getElementById('upType');
-let label=document.getElementById('upTypeLabel');
-let autoInfo=document.getElementById('autoInfo');
-if(isAdmin()){
-label.innerText='তুমি Admin - ৩টা থেকে যেকোনো একটা বাছো:';
-sel.style.display='block';
-sel.innerHTML='<option value="auto">Auto - ছোট হলে Telegram, বড় হলে Firebase</option><option value="telegram">Telegram দিয়ে (ছোট ভিডিও)</option><option value="firebase">Firebase দিয়ে (বড় ভিডিও)</option><option value="drive">Google Drive লিংক দিয়ে (শুধু তুমি)</option>';
-autoInfo.innerText='';
-} else {
-label.innerText='অটোমেটিক আপলোড হবে - তোমাকে কিছু বাছতে হবে না ✅';
-sel.style.display='none';
-sel.innerHTML='<option value="auto">Auto</option>';
-autoInfo.innerText='ছোট ভিডিও অটো Telegram এ, বড় ভিডিও অটো Firebase এ যাবে।';
+  let sel=document.getElementById('upType'); let label=document.getElementById('upTypeLabel'); let autoInfo=document.getElementById('autoInfo');
+  if(isAdmin()){ label.innerText='তুমি Admin - ৩টা থেকে যেকোনো একটা বাছো:'; sel.style.display='block'; sel.innerHTML='<option value="auto">Auto - ছোট হলে Telegram, বড় হলে Firebase</option><option value="telegram">Telegram দিয়ে (ছোট ভিডিও)</option><option value="firebase">Firebase দিয়ে (বড় ভিডিও)</option><option value="drive">Google Drive লিংক দিয়ে (শুধু তুমি)</option>'; autoInfo.innerText=''; }
+  else { label.innerText='অটোমেটিক আপলোড হবে - তোমাকে কিছু বাছতে হবে না ✅'; sel.style.display='none'; sel.innerHTML='<option value="auto">Auto</option>'; autoInfo.innerText='ছোট ভিডিও অটো Telegram এ, বড় ভিডিও অটো Firebase এ যাবে।'; }
+  sel.value='auto'; toggleUpType();
 }
-sel.value='auto';
-toggleUpType();
-}
-function tryUpload(){
-if(!currentUser){
-alert('আপলোড করতে Login with Google লাগবে!');
-openAuth();
-return;
-}
-if(!myChannel || myChannel.email !== currentUser.email){
-alert('আগে Channel খুলো!');
-openAuth();
-return;
-}
-setupUploadUI();
-openModal('uploadModal');
-}
-async function loadSettings(){
-try{
-let r=await fetch('settings.json');
-let j=await r.json();
-if(j.categories) categories=j.categories;
-}catch(e){}
-document.getElementById('catBar').innerHTML = `<button class="active" onclick="setCat('All',this)">All</button>` + categories.map(c=>`<button onclick="setCat('${c}',this)">${c}</button>`).join('');
-document.getElementById('vCat').innerHTML = categories.map(c=>`<option>${c}</option>`).join('');
-}
-async function loadVideos(){
-try{
-let r=await fetch(DB_URL);
-let data=await r.json();
-if(data){
-videos=Object.entries(data).map(([key,v])=>({...v,key})).reverse();
-}
-}catch(e){}
-render();
-}
-function driveToDirect(link){
-let m=link.match(/\/d\/([^\/]+)/) || link.match(/id=([^&]+)/);
-if(!m) return link;
-return "https://drive.google.com/uc?export=download&id="+m[1];
-}
+function tryUpload(){ if(!currentUser){ alert('আপলোড করতে Login with Google লাগবে!'); openAuth(); return; } if(!myChannel || myChannel.email !== currentUser.email){ alert('আগে Channel খুলো!'); openAuth(); return; } setupUploadUI(); openModal('uploadModal'); }
+async function loadSettings(){ try{ let r=await fetch('settings.json'); let j=await r.json(); if(j.categories) categories=j.categories; }catch(e){} document.getElementById('catBar').innerHTML = `<button class="active" onclick="setCat('All',this)">All</button>` + categories.map(c=>`<button onclick="setCat('${c}',this)">${c}</button>`).join(''); document.getElementById('vCat').innerHTML = categories.map(c=>`<option>${c}</option>`).join(''); }
+async function loadVideos(){ try{ let r=await fetch(DB_URL); let data=await r.json(); if(data){ videos=Object.entries(data).map(([key,v])=>({...v,key})).reverse(); } }catch(e){} render(); }
+function driveToDirect(link){ let m=link.match(/\/d\/([^\/]+)/) || link.match(/id=([^&]+)/); if(!m) return link; return "https://drive.google.com/uc?export=download&id="+m[1]; }
 async function uploadVideo(){
-let t=document.getElementById('vTitle').value.trim();
-let type=document.getElementById('upType').value;
-if(!t) return alert('Title দাও!');
-let videoUrl="";
-let thumbUrl="";
-let tf=document.getElementById('vThumb').files[0];
-if(tf){
-thumbUrl=URL.createObjectURL(tf);
+  if(stats.upload>=2) return alert('আজকে ২টা আপলোডের টাকা শেষ। কালকে আবার পারবা।');
+  let t=document.getElementById('vTitle').value.trim(); let type=document.getElementById('upType').value;
+  if(!t) return alert('Title দাও!');
+  let desc=document.getElementById('vDesc').value;
+  if(isBadVideo(t,desc)){ alert('এই ভিডিও দেওয়া যাবে না! খারাপ / স্ক্যাম / কপিরাইট ভিডিও অটোমেটিক ডিলিট হয়ে যায়।'); return; }
+  let videoUrl=""; let thumbUrl=""; let tf=document.getElementById('vThumb').files[0]; if(tf){ thumbUrl=URL.createObjectURL(tf); }
+  let f=document.getElementById('vFile').files[0]; let sizeMB = f ? f.size/(1024*1024) : 0;
+  if(sizeMB>100) return alert('১০০MB এর বেশি ভিডিও দেওয়া যাবে না। ভিডিওটা ছোট করে আবার দাও।');
+  if(type==='auto'){ if(sizeMB <= 50){ type='telegram'; } else { type='firebase'; } }
+  showProgress(10);
+  if(type==='telegram'){
+    if(!f) return alert('Video ফাইল দাও!'); document.getElementById('upMsg').innerText='Telegram এ আপলোড হচ্ছে...'; showProgress(50);
+    let fd=new FormData(); fd.append('chat_id',TELEGRAM_CHAT_ID); fd.append('video',f); fd.append('caption',t+' | '+myChannel.name);
+    let res=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendVideo',{method:'POST',body:fd}); let j=await res.json(); if(!j.ok) return alert('Telegram Error: '+j.description);
+    let fileId=j.result.video.file_id; let gj=await (await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/getFile?file_id='+fileId)).json(); videoUrl='https://api.telegram.org/file/bot'+TELEGRAM_TOKEN+'/'+gj.result.file_path;
+  } else if(type==='firebase'){
+    if(!f) return alert('Video ফাইল দাও!'); document.getElementById('upMsg').innerText='Firebase এ আপলোড হচ্ছে... '+sizeMB.toFixed(1)+'MB - একটু অপেক্ষা করো...'; showProgress(50);
+    try{ let fileName='videos/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9.]/g,'_'); let ref=storage.ref(fileName); let snap=await ref.put(f); videoUrl=await snap.ref.getDownloadURL(); }catch(e){ return alert('Firebase Error: '+e.message); }
+  } else if(type==='drive'){ let link=document.getElementById('driveLink').value.trim(); if(!link) return alert('Drive লিংক দাও!'); videoUrl=driveToDirect(link); }
+  showProgress(90);
+  let newVideo={ title:t, cat:document.getElementById('vCat').value, desc:document.getElementById('vDesc').value, channel:myChannel.name, handle:myChannel.handle, ownerEmail:currentUser.email, src:videoUrl, thumb:thumbUrl, views:0, likes:0, time:Date.now() };
+  await fetch(DB_URL,{method:'POST',body:JSON.stringify(newVideo)});
+  showProgress(100);
+  stats.upload++; addMoney(1,'+১ টাকা পেয়ে গেছো! আপলোডের জন্য 🎉');
+  closeModal('uploadModal'); document.getElementById('vTitle').value=''; document.getElementById('vFile').value=''; document.getElementById('vThumb').value=''; document.getElementById('driveLink').value=''; document.getElementById('upMsg').innerText='';
+  document.getElementById('progBar').style.display='none';
+  await loadVideos(); alert('হয়ে গেছে! 🔥 Type: '+type);
 }
-let f=document.getElementById('vFile').files[0];
-let sizeMB = f ? f.size/(1024*1024) : 0;
-if(type==='auto'){
-if(sizeMB <= 50){
-type='telegram';
-} else {
-type='firebase';
-}
-}
-if(type==='telegram'){
-if(!f) return alert('Video ফাইল দাও!');
-document.getElementById('upMsg').innerText='Telegram এ আপলোড হচ্ছে...';
-let fd=new FormData();
-fd.append('chat_id',TELEGRAM_CHAT_ID);
-fd.append('video',f);
-fd.append('caption',t+' | '+myChannel.name);
-let res=await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendVideo',{method:'POST',body:fd});
-let j=await res.json();
-if(!j.ok) return alert('Telegram Error: '+j.description);
-let fileId=j.result.video.file_id;
-let gj=await (await fetch('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/getFile?file_id='+fileId)).json();
-videoUrl='https://api.telegram.org/file/bot'+TELEGRAM_TOKEN+'/'+gj.result.file_path;
-} else if(type==='firebase'){
-if(!f) return alert('Video ফাইল দাও!');
-document.getElementById('upMsg').innerText='Firebase এ আপলোড হচ্ছে... '+sizeMB.toFixed(1)+'MB - একটু অপেক্ষা করো...';
-try{
-let fileName='videos/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9.]/g,'_');
-let ref=storage.ref(fileName);
-let snap=await ref.put(f);
-videoUrl=await snap.ref.getDownloadURL();
-}catch(e){
-return alert('Firebase Error: '+e.message);
-}
-} else if(type==='drive'){
-let link=document.getElementById('driveLink').value.trim();
-if(!link) return alert('Drive লিংক দাও!');
-videoUrl=driveToDirect(link);
-}
-let newVideo={
-title:t,
-cat:document.getElementById('vCat').value,
-desc:document.getElementById('vDesc').value,
-channel:myChannel.name,
-handle:myChannel.handle,
-ownerEmail:currentUser.email,
-src:videoUrl,
-thumb:thumbUrl,
-views:0,
-likes:0,
-time:Date.now()
-};
-await fetch(DB_URL,{method:'POST',body:JSON.stringify(newVideo)});
-closeModal('uploadModal');
-document.getElementById('vTitle').value='';
-document.getElementById('vFile').value='';
-document.getElementById('vThumb').value='';
-document.getElementById('driveLink').value='';
-document.getElementById('upMsg').innerText='';
-await loadVideos();
-alert('হয়ে গেছে! 🔥 Type: '+type);
-}
-async function deleteVideo(key){
-if(!isAdmin()) return alert('তুমি ডিলিট করতে পারবা না!');
-if(!confirm('এই ভিডিও ডিলিট করবা?')) return;
-await fetch(DB_BASE+"/videos/"+key+".json",{method:'DELETE'});
-await loadVideos();
-}
-async function toggleLike(key){
-let v=videos.find(x=>x.key===key);
-let liked=localStorage.getItem('liked_'+key)==='1';
-let newLikes=liked?Math.max(0,(v.likes||0)-1):(v.likes||0)+1;
-localStorage.setItem('liked_'+key,liked?'0':'1');
-await fetch(DB_BASE+"/videos/"+key+"/likes.json",{method:'PUT',body:JSON.stringify(newLikes)});
-loadVideos();
-}
+async function deleteVideo(key){ if(!isAdmin()) return alert('তুমি ডিলিট করতে পারবা না!'); if(!confirm('এই ভিডিও ডিলিট করবা?')) return; await fetch(DB_BASE+"/videos/"+key+".json",{method:'DELETE'}); await loadVideos(); }
+async function toggleLike(key){ let v=videos.find(x=>x.key===key); let liked=localStorage.getItem('liked_'+key)==='1'; let newLikes=liked?Math.max(0,(v.likes||0)-1):(v.likes||0)+1; localStorage.setItem('liked_'+key,liked?'0':'1'); await fetch(DB_BASE+"/videos/"+key+"/likes.json",{method:'PUT',body:JSON.stringify(newLikes)}); loadVideos(); }
 async function shareVideo(title){
-let text=title+" - AddaTube এ দেখো: "+location.href;
-if(navigator.share){
-try{
-await navigator.share({title:title,text:text,url:location.href});
-}catch(e){}
-} else {
-await navigator.clipboard.writeText(text);
-alert('লিংক কপি হয়ে গেছে!');
+  let text=title+" - AddaTube এ দেখো: "+location.href;
+  try{
+    if(navigator.share){ await navigator.share({title:title,text:text,url:location.href}); }
+    else { throw new Error('no share'); }
+  }catch(e){
+    try{ await navigator.clipboard.writeText(location.href); alert('শেয়ার অপশন খুলে নাই, তাই লিংক কপি হয়ে গেছে। Chrome দিয়ে https লিংক দিয়ে খুললে WhatsApp / Messenger আসবো।'); }
+    catch(e2){ alert('লিংক: '+location.href); }
+  }
 }
-}
-async function addComment(key, idx){
-if(!currentUser) return alert('কমেন্ট করতে Login with Google লাগবে!');
-let inp=document.getElementById('cmtIn_'+idx);
-let txt=inp.value.trim();
-if(!txt) return;
-await fetch(DB_BASE+"/comments/"+key+".json",{method:'POST',body:JSON.stringify({name:myChannel?myChannel.name:currentUser.displayName, text:txt, time:Date.now()})});
-inp.value='';
-loadVideos();
-}
-async function getComments(key){
-try{
-let r=await fetch(DB_BASE+"/comments/"+key+".json");
-let d=await r.json();
-return d?Object.values(d):[];
-}catch(e){
-return [];
-}
-}
+async function addComment(key, idx){ if(!currentUser) return alert('কমেন্ট করতে Login with Google লাগবে!'); let inp=document.getElementById('cmtIn_'+idx); let txt=inp.value.trim(); if(!txt) return; await fetch(DB_BASE+"/comments/"+key+".json",{method:'POST',body:JSON.stringify({name:myChannel?myChannel.name:currentUser.displayName, text:txt, time:Date.now()})}); inp.value=''; loadVideos(); }
+async function getComments(key){ try{ let r=await fetch(DB_BASE+"/comments/"+key+".json"); let d=await r.json(); return d?Object.values(d):[]; }catch(e){ return []; } }
 async function render(){
-let q=document.getElementById('search').value.toLowerCase();
-let list=videos.filter(v=>(cat==='All'||v.cat===cat)&&(v.title.toLowerCase().includes(q)||v.channel.toLowerCase().includes(q)));
-if(currentUser){
-document.getElementById('myChannel').innerHTML=`<div style="background:#1a1a1a;padding:12px;border-radius:12px"><b>👤 ${myChannel?myChannel.name:currentUser.displayName}</b> <span class="small">${currentUser.email}</span> <button class="btn2" onclick="doLogout()" style="float:right">Logout</button></div>`;
-} else {
-document.getElementById('myChannel').innerHTML=`<div style="background:#1a2a1a;padding:12px;border-radius:12px">👀 দেখতে Login লাগবে না। <b onclick="openAuth()" style="color:#4dff88">আপলোড করতে Login with Google করো</b></div>`;
+  let q=document.getElementById('search').value.toLowerCase();
+  let list=videos.filter(v=>(cat==='All'||v.cat===cat)&&(v.title.toLowerCase().includes(q)||v.channel.toLowerCase().includes(q)));
+  if(currentUser){ document.getElementById('myChannel').innerHTML=`<div style="background:#1a1a1a;padding:12px;border-radius:12px"><b>👤 ${myChannel?myChannel.name:currentUser.displayName} ${isOwnerEmail(currentUser.email)?fbTick():''}</b> <span class="small">${currentUser.email}</span> <button class="btn2" onclick="doLogout()" style="float:right">Logout</button></div>`; }
+  else { document.getElementById('myChannel').innerHTML=`<div style="background:#1a2a1a;padding:12px;border-radius:12px">👀 দেখতে Login লাগবে না। <b onclick="openAuth()" style="color:#4dff88">আপলোড করতে Login with Google করো</b></div>`; }
+  document.getElementById('empty').style.display=list.length?'none':'block';
+  let html="";
+  for(let i=0;i<list.length;i++){
+    let v=list[i]; let cmts=await getComments(v.key); let cmtHtml=cmts.map(c=>`<div class="cmt"><b>${c.name}:</b> ${c.text}</div>`).join('');
+    let showDel = canSeeDelete() || (currentUser && v.ownerEmail===currentUser.email);
+    let isOwner=isOwnerEmail(v.ownerEmail);
+    let isSubbed=localStorage.getItem(getSubKey(v.channel))==='1';
+    if(i>0 && i%5===0){ html+=`<div class="bigAd">📢 <b>বড় বিজ্ঞাপন</b><br><span class="small">৫টা ভিডিও পর ১টা বড় বিজ্ঞাপন - Google Ad Code এখানে বসবে</span><br><button class="btn" style="margin-top:8px" onclick="watchAd()">বিজ্ঞাপন দেখে +১ টাকা নাও</button></div>`; }
+    html+=`<div class="card"><video controls src="${v.src}" poster="${v.thumb||''}" ontimeupdate="onVideoTime(this,'${v.key}')"></video><div class="pad"><div class="row"><div class="ava">${v.channel[0]}</div><div style="flex:1"><b>${v.title}</b><br><span class="small">${v.channel} ${isOwner?fbTick():''} ${v.handle} • ${v.views||0} views • ${v.cat}</span><br><span class="small" id="earn_${v.key}">🪙 ৮০% দেখলেই ১ টাকা</span></div>${showDel?`<button class="btn2" onclick="deleteVideo('${v.key}')">🗑️ Delete</button>`:''}</div><p class="small" style="margin-top:6px">${v.desc||''}</p><div class="actions"><button onclick="toggleLike('${v.key}')">❤️ লাইক ${v.likes||0}</button><button onclick="shareVideo('${v.title.replace(/'/g,"")}')">🔗 শেয়ার</button><button onclick="doSubscribe('${v.channel}')" style="background:${isSubbed?'#555':'red'}">${isSubbed?'Subscribed ✅':'🔔 Subscribe'} <small>+১ টাকা</small></button><button onclick="watchAd()">📢 বিজ্ঞাপন দেখে +১ টাকা</button></div><div style="margin-top:10px"><b>💬 কমেন্ট (${cmts.length})</b>${cmtHtml}<div style="display:flex;gap:6px;margin-top:6px"><input id="cmtIn_${i}" placeholder="কমেন্ট লিখো... (Login লাগবে)" style="flex:1;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:10px"><button class="btn2" onclick="addComment('${v.key}',${i})">পাঠাও</button></div></div></div></div>`;
+  }
+  document.getElementById('feed').innerHTML=html;
+  updateWalletUI();
 }
-document.getElementById('empty').style.display=list.length?'none':'block';
-let html="";
-for(let i=0;i<list.length;i++){
-let v=list[i];
-let cmts=await getComments(v.key);
-let cmtHtml=cmts.map(c=>`<div class="cmt"><b>${c.name}:</b> ${c.text}</div>`).join('');
-let showDel = canSeeDelete() || (currentUser && v.ownerEmail===currentUser.email);
-html+=`<div class="card"><video controls src="${v.src}" poster="${v.thumb||''}"></video><div class="pad"><div class="row"><div class="ava">${v.channel[0]}</div><div style="flex:1"><b>${v.title}</b><br><span class="small">${v.channel} ${v.handle} • ${v.views||0} views • ${v.cat}</span></div>${showDel?`<button class="btn2" onclick="deleteVideo('${v.key}')">🗑️ Delete</button>`:''}</div><p class="small" style="margin-top:6px">${v.desc||''}</p><div class="actions"><button onclick="toggleLike('${v.key}')">❤️ লাইক ${v.likes||0}</button><button onclick="shareVideo('${v.title.replace(/'/g,"")}')">🔗 শেয়ার</button></div><div style="margin-top:10px"><b>💬 কমেন্ট (${cmts.length})</b>${cmtHtml}<div style="display:flex;gap:6px;margin-top:6px"><input id="cmtIn_${i}" placeholder="কমেন্ট লিখো... (Login লাগবে)" style="flex:1;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:10px"><button class="btn2" onclick="addComment('${v.key}',${i})">পাঠাও</button></div></div></div></div>`;
-}
-document.getElementById('feed').innerHTML=html;
-}
-auth.onAuthStateChanged(u=>{
-currentUser=u;
-if(u) document.getElementById('loginBtn').innerText='Login ✅';
-render();
-});
-loadSettings();
-loadVideos();
-setInterval(loadVideos,15000);
+auth.onAuthStateChanged(u=>{ currentUser=u; if(u) document.getElementById('loginBtn').innerText='Login ✅'; render(); });
+loadSettings(); loadVideos(); setInterval(loadVideos,15000);
+updateWalletUI();
 </script>
 </body>
 </html>
